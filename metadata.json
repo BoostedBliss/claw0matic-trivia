@@ -1,0 +1,6 @@
+{
+  "name": "ClawPop Discord Trivia",
+  "description": "Discord-styled kawaii claw machine trivia game featuring plushie AI hosts, real-time voice, TTS commentary, and search-grounded quizzes.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
