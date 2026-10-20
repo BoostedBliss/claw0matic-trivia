@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlushieHost, TriviaQuestion, Player, ChatMessage, GameState } from './types';
 import { PLUSHIE_HOSTS } from './data/hosts';
 import { DiscordHeader } from './components/DiscordHeader';
@@ -284,7 +284,9 @@ export default function App() {
   };
 
   // Chat message send handler
-  const handleSendMessage = (content: string) => {
+  // ⚡ Bolt: Wrapped in useCallback to maintain a stable reference
+  // so that the memoized DiscordChatFeed doesn't re-render unnecessarily.
+  const handleSendMessage = useCallback((content: string) => {
     const newMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'You',
@@ -317,7 +319,7 @@ export default function App() {
         sound.discordPing();
       }, 1000);
     }
-  };
+  }, [selectedHost]);
 
   const userPlayer = players.find((p) => p.isUser) || players[0];
 
@@ -481,8 +483,6 @@ export default function App() {
             <DiscordChatFeed
               messages={chatMessages}
               onSendMessage={handleSendMessage}
-              activeHost={selectedHost}
-              players={players}
             />
           </div>
         </div>

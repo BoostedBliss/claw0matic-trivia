@@ -1,20 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChatMessage, Player, PlushieHost } from '../types';
+import React, { useState, useEffect, useRef, memo } from 'react';
+import { ChatMessage } from '../types';
 import { sound } from '../utils/audio';
 import { Send, Smile, Sparkles, Hash, MessageSquare } from 'lucide-react';
 
 interface DiscordChatFeedProps {
   messages: ChatMessage[];
   onSendMessage: (content: string) => void;
-  activeHost: PlushieHost;
-  players: Player[];
 }
 
-export const DiscordChatFeed: React.FC<DiscordChatFeedProps> = ({
+// ⚡ Bolt: Wrapped in React.memo so the chat feed only re-renders when
+// actual chat messages change, instead of every time the parent re-renders.
+export const DiscordChatFeed: React.FC<DiscordChatFeedProps> = memo(({
   messages,
   onSendMessage,
-  activeHost,
-  players,
 }) => {
   const [inputText, setInputText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -139,4 +137,4 @@ export const DiscordChatFeed: React.FC<DiscordChatFeedProps> = ({
       </form>
     </div>
   );
-};
+});
