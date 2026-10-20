@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { PlushieHost } from '../types';
 
 interface PlushieAvatarProps {
@@ -9,7 +9,11 @@ interface PlushieAvatarProps {
   className?: string;
 }
 
-export const PlushieAvatar: React.FC<PlushieAvatarProps> = ({
+// ⚡ Bolt: Wrapped in memo() to prevent massive re-renders.
+// During the claw drop animation, ClawMachine's clawX updates every 20ms.
+// Without memo(), all 48 PlushieAvatar instances re-rendered 50 times a second,
+// causing lag due to the complex SVG DOM tree recalculations.
+export const PlushieAvatar: React.FC<PlushieAvatarProps> = memo(({
   host,
   size = 'md',
   emotion = 'idle',
@@ -711,4 +715,4 @@ export const PlushieAvatar: React.FC<PlushieAvatarProps> = ({
       )}
     </div>
   );
-};
+});
