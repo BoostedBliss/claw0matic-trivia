@@ -11,3 +11,9 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Inline List Mappings Defeating React Reconciler in Animated Components
+**Learning:** Even if a complex child component (like `PlushieAvatar`) is perfectly memoized, mapping over a large list (like 24 plushies) directly in the render function of a rapidly animating parent component (like `ClawMachine`) creates completely new wrapper elements (`<div>`, `<button>`) on every single animation tick. React's reconciler still has to process the diff for all these new wrapper elements 50+ times a second, causing significant jank (reconciliation overhead).
+**Action:**
+- Always wrap large list mappings in `useMemo` if they are rendered inside a component that updates its state at animation speeds (e.g. 20ms intervals).
+- Carefully set the `useMemo` dependencies so the list only re-maps when visually necessary (e.g., when the hover state or selection changes), rather than on every animation frame.
