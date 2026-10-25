@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { PlushieHost } from '../types';
 import { PLUSHIE_HOSTS } from '../data/hosts';
 import { PlushieAvatar } from './PlushieAvatar';
@@ -10,6 +10,49 @@ interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
   selectedHost?: PlushieHost | null;
 }
+
+// ⚡ Bolt: Extracted to a memoized component so the 24 plushies in the pit
+// don't re-render their DOM elements 50 times a second while the claw falls.
+// They only re-render if they are the one under the claw or attached to it.
+const PitPlushie = memo(({
+  host,
+  pos,
+  isUnderClaw,
+  isCurrentTarget,
+  onSelect
+}: {
+  host: PlushieHost,
+  pos: {x: number, y: number},
+  isUnderClaw: boolean,
+  isCurrentTarget: boolean,
+  onSelect: (host: PlushieHost, x: number) => void
+}) => {
+  if (isCurrentTarget) return null; // currently attached to claw
+
+  return (
+    <div
+      onClick={() => onSelect(host, pos.x)}
+      className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
+        isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
+      }`}
+      style={{
+        left: `${pos.x}%`,
+        bottom: `${(pos.y - 48) * 2.5}px`,
+      }}
+      title={`${host.name} - ${host.category}`}
+    >
+      <PlushieAvatar
+        host={host}
+        size="md"
+        emotion={isUnderClaw ? 'happy' : 'idle'}
+        showAura={true}
+      />
+      <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
+        {host.name}
+      </div>
+    </div>
+  );
+});
 
 export const ClawMachine: React.FC<ClawMachineProps> = ({
   onHostSelected,
@@ -185,6 +228,15 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     dropClaw(chosen.id);
   };
 
+  // ⚡ Bolt: Memoized the selection handler so PitPlushies don't receive
+  // a new function reference every render, defeating React.memo.
+  const handlePitPlushieSelect = useCallback((host: PlushieHost, x: number) => {
+    if (!isDropping) {
+      setActivePreviewHost(host);
+      setClawX(x);
+    }
+  }, [isDropping]);
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
       {/* Top Arcade Marquee Banner */}
@@ -337,39 +389,18 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {plushiePositions.map((pos) => {
                   const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
-                  const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
-
-                  if (isCurrentTarget) return null; // currently attached to claw
+                  const isUnderClaw = Math.abs(pos.x - clawX) < 8;
 
                   return (
-                    <div
+                    <PitPlushie
                       key={host.id}
-                      onClick={() => {
-                        if (!isDropping) {
-                          setActivePreviewHost(host);
-                          setClawX(pos.x);
-                        }
-                      }}
-                      className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
-                        isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
-                      }`}
-                      style={{
-                        left: `${pos.x}%`,
-                        bottom: `${(pos.y - 48) * 2.5}px`,
-                      }}
-                      title={`${host.name} - ${host.category}`}
-                    >
-                      <PlushieAvatar
-                        host={host}
-                        size="md"
-                        emotion={isUnderClaw ? 'happy' : 'idle'}
-                        showAura={true}
-                      />
-                      <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
-                        {host.name}
-                      </div>
-                    </div>
+                      host={host}
+                      pos={pos}
+                      isUnderClaw={isUnderClaw}
+                      isCurrentTarget={isCurrentTarget}
+                      onSelect={handlePitPlushieSelect}
+                    />
                   );
                 })}
               </div>
@@ -514,38 +545,40 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
           </div>
 
           {/* Quick Plushie Roster Grid */}
-          <div className="bg-[#2b2d31] rounded-2xl p-4 border border-[#35373c]">
-            <h4 className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-2.5 flex items-center justify-between">
-              <span>All 24 Claw Plushies</span>
-              <span className="text-[10px] text-[#5865F2] font-semibold">24 Unique Categories</span>
-            </h4>
+          {useMemo(() => (
+            <div className="bg-[#2b2d31] rounded-2xl p-4 border border-[#35373c]">
+              <h4 className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                <span>All 24 Claw Plushies</span>
+                <span className="text-[10px] text-[#5865F2] font-semibold">24 Unique Categories</span>
+              </h4>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
-              {PLUSHIE_HOSTS.map((h) => {
-                const isSelected = activePreviewHost.id === h.id;
-                return (
-                  <button
-                    key={h.id}
-                    onClick={() => {
-                      setActivePreviewHost(h);
-                      const pos = plushiePositions.find((p) => p.id === h.id);
-                      if (pos && !isDropping) setClawX(pos.x);
-                    }}
-                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
-                        : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
-                    }`}
-                  >
-                    <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
-                    <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
-                      {h.name}
-                    </span>
-                  </button>
-                );
-              })}
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
+                {PLUSHIE_HOSTS.map((h) => {
+                  const isSelected = activePreviewHost.id === h.id;
+                  return (
+                    <button
+                      key={h.id}
+                      onClick={() => {
+                        setActivePreviewHost(h);
+                        const pos = plushiePositions.find((p) => p.id === h.id);
+                        if (pos && !isDropping) setClawX(pos.x);
+                      }}
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
+                          : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
+                      }`}
+                    >
+                      <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
+                      <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
+                        {h.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ), [activePreviewHost.id, isDropping, plushiePositions])}
         </div>
       </div>
 

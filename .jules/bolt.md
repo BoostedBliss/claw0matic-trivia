@@ -11,3 +11,10 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Thrashing from Inline Components in Interval Loops
+**Learning:** Mapping over an array to render complex components directly inside a parent component that updates state via a high-frequency `setInterval` (like `clawX` updating every 20ms during a drop animation) causes severe re-render thrashing. Even if child components like `PlushieAvatar` are memoized, passing them as children to a non-memoized inline wrapper `div` forces the wrapper to be re-created and the memoization to be evaluated every tick.
+**Action:**
+- Always extract wrapper DOM nodes (like positional `div` containers in absolute layouts) into their own `React.memo`-ized functional components.
+- Pass stable `useCallback` functions to these memoized wrappers to prevent breaking referential equality.
+- Use `useMemo` for static or semi-static lists (like a roster grid) that don't need to re-render during unrelated state animations.
