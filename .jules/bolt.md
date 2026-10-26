@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-10-18 - Extracting array items into React.memo components for interval loops
+**Learning:** In React, if a parent component runs an interval loop that updates state rapidly (e.g. 50 times a second for animation frames like `clawX` and `clawY` in `ClawMachine`), mapping over large arrays (like 24 plushies) inline will cause massive re-renders of all child DOM elements on every tick. Even if a deep child like `PlushieAvatar` is memoized, the intermediate DOM wrapper elements inside the map still get recreated constantly.
+**Action:** Extract the mapped item JSX into its own `React.memo` component (e.g., `PitPlushieItem` and `RosterPlushieItem`). Pass primitive values (like `isUnderClaw`) to the memoized component so it only re-renders when its specific boolean state flips, completely bypassing the 50fps parent re-renders for unchanged items.
