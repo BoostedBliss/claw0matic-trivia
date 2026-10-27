@@ -122,7 +122,7 @@ export default function App() {
   ]);
 
   // When a host is picked from the Claw Machine
-  const handleHostSelected = async (host: PlushieHost) => {
+  const handleHostSelected = useCallback(async (host: PlushieHost) => {
     setSelectedHost(host);
     setHostCommentary(host.catchphrases.intro);
     setIsLoadingQuestions(true);
@@ -168,7 +168,7 @@ export default function App() {
     } finally {
       setIsLoadingQuestions(false);
     }
-  };
+  }, []);
 
   // Simulate co-player answer picks during active question
   useEffect(() => {

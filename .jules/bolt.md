@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Optimizing React Animations in Complex Component Trees
+**Learning:** During the 50fps claw drop animation, React was re-rendering the `ClawMachine` and, by extension, running an array `.find()` inside a loop over the plushie list, and re-rendering the un-animated right sidebar components. This causes jank in complex interfaces.
+**Action:** Move static data mappings outside the component where possible, and wrap expensive sibling DOM nodes (like sidebars and grids) in `React.useMemo` (and stabilize parent callback props with `useCallback`) to avoid constant re-evaluation during a parent's animation frame updates.

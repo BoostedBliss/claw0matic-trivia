@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { PlushieHost } from '../types';
 import { PLUSHIE_HOSTS } from '../data/hosts';
 import { PlushieAvatar } from './PlushieAvatar';
@@ -11,7 +11,44 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
-export const ClawMachine: React.FC<ClawMachineProps> = ({
+// ⚡ Bolt: Pre-compute plushie positions and resolve the host objects.
+// This prevents calling .find() on PLUSHIE_HOSTS hundreds of times per second
+// during the claw drop animation.
+const RAW_POSITIONS = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
+
+const PLUSHIE_POSITIONS = RAW_POSITIONS.map(pos => ({
+  ...pos,
+  host: PLUSHIE_HOSTS.find(h => h.id === pos.id)!
+}));
+
+// ⚡ Bolt: Wrapped ClawMachine in React.memo so it doesn't re-render
+// when the App's other state (like chat messages or player scores) updates.
+export const ClawMachine: React.FC<ClawMachineProps> = memo(({
   onHostSelected,
   selectedHost,
 }) => {
@@ -23,34 +60,6 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
   const [grabbedHost, setGrabbedHost] = useState<PlushieHost | null>(null);
   const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
   const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
-
-  // Plushie slot positions inside the machine pit (4 overflowing tiers)
-  const plushiePositions = useRef([
-    { id: 'boba-bun', x: 14, y: 50 },
-    { id: 'chocola-bear', x: 28, y: 52 },
-    { id: 'dj-meow', x: 42, y: 49 },
-    { id: 'sir-reginald', x: 56, y: 52 },
-    { id: 'captain-squid', x: 70, y: 50 },
-    { id: 'matcha-mochi', x: 84, y: 52 },
-    { id: 'prof-pip', x: 21, y: 64 },
-    { id: 'pixel-pup', x: 35, y: 66 },
-    { id: 'sparky-bolt', x: 49, y: 63 },
-    { id: 'luna-moth', x: 63, y: 65 },
-    { id: 'ninja-panda', x: 77, y: 63 },
-    { id: 'dino-nugget', x: 89, y: 65 },
-    { id: 'neon-shiba', x: 16, y: 76 },
-    { id: 'marshmallow-seal', x: 30, y: 78 },
-    { id: 'spicy-ramen-pig', x: 44, y: 75 },
-    { id: 'galaxy-cat', x: 58, y: 77 },
-    { id: 'wizard-owl', x: 72, y: 75 },
-    { id: 'berry-bunny', x: 85, y: 77 },
-    { id: 'steampunk-otter', x: 23, y: 88 },
-    { id: 'vampire-bat', x: 37, y: 90 },
-    { id: 'boba-dragon', x: 51, y: 87 },
-    { id: 'cactus-pup', x: 65, y: 89 },
-    { id: 'detective-duck', x: 79, y: 88 },
-    { id: 'chibi-kraken', x: 48, y: 98 },
-  ]).current;
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
@@ -89,7 +98,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     // If specific target requested (e.g. from random roll)
     let targetX = clawX;
     if (targetHostId) {
-      const match = plushiePositions.find((p) => p.id === targetHostId);
+      const match = PLUSHIE_POSITIONS.find((p) => p.id === targetHostId);
       if (match) {
         targetX = match.x;
         setClawX(targetX);
@@ -99,12 +108,11 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     // Determine which plushie is closest to current X
     let closestHost = PLUSHIE_HOSTS[0];
     let minDistance = 999;
-    plushiePositions.forEach((pos) => {
+    PLUSHIE_POSITIONS.forEach((pos) => {
       const dist = Math.abs(pos.x - targetX);
       if (dist < minDistance) {
         minDistance = dist;
-        const hostObj = PLUSHIE_HOSTS.find((h) => h.id === pos.id);
-        if (hostObj) closestHost = hostObj;
+        closestHost = pos.host;
       }
     });
 
@@ -335,8 +343,8 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
 
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
-                {plushiePositions.map((pos) => {
-                  const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+                {PLUSHIE_POSITIONS.map((pos) => {
+                  const host = pos.host;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
 
@@ -427,126 +435,128 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
         </div>
 
         {/* Right: Active Plushie Dossier / Quick Shelf (Col 9-12) */}
-        <div className="lg:col-span-4 flex flex-col space-y-4">
-          {/* Active Highlight Card */}
-          <div className="bg-[#2b2d31] rounded-2xl p-5 border border-[#35373c] shadow-lg relative overflow-hidden">
-            <div
-              className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
-              style={{ backgroundColor: activePreviewHost.themeColor }}
-            ></div>
+        {useMemo(() => (
+          <div className="lg:col-span-4 flex flex-col space-y-4">
+            {/* Active Highlight Card */}
+            <div className="bg-[#2b2d31] rounded-2xl p-5 border border-[#35373c] shadow-lg relative overflow-hidden">
+              <div
+                className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none"
+                style={{ backgroundColor: activePreviewHost.themeColor }}
+              ></div>
 
-            <div className="flex items-center justify-between mb-3">
-              <span
-                className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full text-white border"
-                style={{
-                  backgroundColor: `${activePreviewHost.themeColor}30`,
-                  borderColor: activePreviewHost.themeColor,
-                }}
-              >
-                {activePreviewHost.badge}
-              </span>
-              <span className="text-xs text-[#949ba4] font-medium">Host Dossier</span>
-            </div>
+              <div className="flex items-center justify-between mb-3">
+                <span
+                  className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full text-white border"
+                  style={{
+                    backgroundColor: `${activePreviewHost.themeColor}30`,
+                    borderColor: activePreviewHost.themeColor,
+                  }}
+                >
+                  {activePreviewHost.badge}
+                </span>
+                <span className="text-xs text-[#949ba4] font-medium">Host Dossier</span>
+              </div>
 
-            <div className="flex items-center space-x-4 mb-4">
-              <PlushieAvatar host={activePreviewHost} size="lg" emotion="idle" />
-              <div>
-                <h3 className="text-xl font-black text-white font-arcade leading-tight">
-                  {activePreviewHost.name}
-                </h3>
-                <p className="text-xs font-semibold text-[#f472b6]">
-                  {activePreviewHost.title}
-                </p>
-                <div className="flex space-x-1 mt-2">
-                  {activePreviewHost.specialtyIcons.map((ico, idx) => (
-                    <span key={idx} className="text-xs bg-[#1e1f22] p-1 rounded-md">
-                      {ico}
-                    </span>
-                  ))}
+              <div className="flex items-center space-x-4 mb-4">
+                <PlushieAvatar host={activePreviewHost} size="lg" emotion="idle" />
+                <div>
+                  <h3 className="text-xl font-black text-white font-arcade leading-tight">
+                    {activePreviewHost.name}
+                  </h3>
+                  <p className="text-xs font-semibold text-[#f472b6]">
+                    {activePreviewHost.title}
+                  </p>
+                  <div className="flex space-x-1 mt-2">
+                    {activePreviewHost.specialtyIcons.map((ico, idx) => (
+                      <span key={idx} className="text-xs bg-[#1e1f22] p-1 rounded-md">
+                        {ico}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              {/* Personality & Trivia Category */}
+              <div className="space-y-3 bg-[#1e1f22] p-3.5 rounded-xl border border-[#35373c] text-xs">
+                <div>
+                  <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
+                    Specialized Quiz Realm
+                  </span>
+                  <span className="text-[#57F287] font-bold text-sm block mt-0.5">
+                    {activePreviewHost.category}
+                  </span>
+                  <p className="text-[#dbdee1] text-[11px] mt-0.5">
+                    {activePreviewHost.categoryDescription}
+                  </p>
+                </div>
+
+                <div className="border-t border-[#2b2d31] pt-2">
+                  <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
+                    Personality Vibe
+                  </span>
+                  <p className="text-[#dbdee1] text-[11px] mt-0.5 italic">
+                    "{activePreviewHost.personality}"
+                  </p>
+                </div>
+
+                <div className="border-t border-[#2b2d31] pt-2">
+                  <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
+                    Catchphrase
+                  </span>
+                  <p className="text-pink-300 text-[11px] mt-0.5 font-medium">
+                    "{activePreviewHost.catchphrases.intro}"
+                  </p>
+                </div>
+              </div>
+
+              {/* Direct Select Button */}
+              <button
+                onClick={() => {
+                  sound.prizeChute();
+                  onHostSelected(activePreviewHost);
+                }}
+                className="w-full mt-4 py-3 bg-[#5865F2] hover:bg-[#4752c4] text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>LOCK IN {activePreviewHost.name.toUpperCase()}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Personality & Trivia Category */}
-            <div className="space-y-3 bg-[#1e1f22] p-3.5 rounded-xl border border-[#35373c] text-xs">
-              <div>
-                <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
-                  Specialized Quiz Realm
-                </span>
-                <span className="text-[#57F287] font-bold text-sm block mt-0.5">
-                  {activePreviewHost.category}
-                </span>
-                <p className="text-[#dbdee1] text-[11px] mt-0.5">
-                  {activePreviewHost.categoryDescription}
-                </p>
-              </div>
+            {/* Quick Plushie Roster Grid */}
+            <div className="bg-[#2b2d31] rounded-2xl p-4 border border-[#35373c]">
+              <h4 className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                <span>All 24 Claw Plushies</span>
+                <span className="text-[10px] text-[#5865F2] font-semibold">24 Unique Categories</span>
+              </h4>
 
-              <div className="border-t border-[#2b2d31] pt-2">
-                <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
-                  Personality Vibe
-                </span>
-                <p className="text-[#dbdee1] text-[11px] mt-0.5 italic">
-                  "{activePreviewHost.personality}"
-                </p>
-              </div>
-
-              <div className="border-t border-[#2b2d31] pt-2">
-                <span className="text-[#949ba4] font-semibold block text-[10px] uppercase tracking-wider">
-                  Catchphrase
-                </span>
-                <p className="text-pink-300 text-[11px] mt-0.5 font-medium">
-                  "{activePreviewHost.catchphrases.intro}"
-                </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
+                {PLUSHIE_HOSTS.map((h) => {
+                  const isSelected = activePreviewHost.id === h.id;
+                  return (
+                    <button
+                      key={h.id}
+                      onClick={() => {
+                        setActivePreviewHost(h);
+                        const pos = PLUSHIE_POSITIONS.find((p) => p.id === h.id);
+                        if (pos && !isDropping) setClawX(pos.x);
+                      }}
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
+                          : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
+                      }`}
+                    >
+                      <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
+                      <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
+                        {h.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            {/* Direct Select Button */}
-            <button
-              onClick={() => {
-                sound.prizeChute();
-                onHostSelected(activePreviewHost);
-              }}
-              className="w-full mt-4 py-3 bg-[#5865F2] hover:bg-[#4752c4] text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>LOCK IN {activePreviewHost.name.toUpperCase()}</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
-
-          {/* Quick Plushie Roster Grid */}
-          <div className="bg-[#2b2d31] rounded-2xl p-4 border border-[#35373c]">
-            <h4 className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-2.5 flex items-center justify-between">
-              <span>All 24 Claw Plushies</span>
-              <span className="text-[10px] text-[#5865F2] font-semibold">24 Unique Categories</span>
-            </h4>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
-              {PLUSHIE_HOSTS.map((h) => {
-                const isSelected = activePreviewHost.id === h.id;
-                return (
-                  <button
-                    key={h.id}
-                    onClick={() => {
-                      setActivePreviewHost(h);
-                      const pos = plushiePositions.find((p) => p.id === h.id);
-                      if (pos && !isDropping) setClawX(pos.x);
-                    }}
-                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
-                        : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
-                    }`}
-                  >
-                    <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
-                    <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
-                      {h.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        ), [activePreviewHost, isDropping, onHostSelected])}
       </div>
 
       {/* Prize Won Announcement Modal */}
@@ -600,4 +610,4 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
       )}
     </div>
   );
-};
+});
