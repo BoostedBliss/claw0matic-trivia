@@ -6,6 +6,9 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 
+// ⚡ Bolt: Cache host lookups to avoid O(N^2) search in render loop
+const HOST_MAP = new Map(PLUSHIE_HOSTS.map(h => [h.id, h]));
+
 interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
   selectedHost?: PlushieHost | null;
@@ -336,7 +339,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {plushiePositions.map((pos) => {
-                  const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+                  const host = HOST_MAP.get(pos.id)!;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
 
