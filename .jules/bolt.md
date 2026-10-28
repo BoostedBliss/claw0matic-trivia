@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - O(N²) Array.find() in High-Frequency Animation Loops
+**Learning:** During the ClawMachine's drop animation, the main thread was calculating `plushiePositions.map()` (24 elements) and inside that mapping calling `PLUSHIE_HOSTS.find()` (24 elements) on every single coordinate update (up to 50 FPS). While a single lookup is fast, doing it 576 times per frame inside a fast-firing `setInterval` causes unnecessary CPU usage and can lead to animation jank.
+**Action:** Always pre-compute and cache array lookups into an `O(1)` Map or object dictionary when the lookup array is static and the lookup is being done repeatedly in a tight render loop or high-frequency interval.
