@@ -11,3 +11,9 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - O(N²) Lookups in High-Frequency Render Loops
+**Learning:** In React components with high-frequency animation state updates (e.g., coordinates changing via `setInterval` or `requestAnimationFrame`), placing O(N) array lookups (like `Array.find`) inside render map functions creates a severe O(N²) bottleneck. Even if the array is small, doing this 50+ times per second during an animation causes measurable lag.
+**Action:**
+- Whenever a component re-renders frequently (like a game loop or drag/drop), pre-compute Hash Maps outside the component for any static data lookups.
+- Replace all `.find()` calls in render loops with O(1) Map `.get()` calls to ensure O(N) time complexity during renders instead of O(N²).
