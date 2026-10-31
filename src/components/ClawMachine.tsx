@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { PlushieHost } from '../types';
 import { PLUSHIE_HOSTS } from '../data/hosts';
 import { PlushieAvatar } from './PlushieAvatar';
@@ -11,10 +11,12 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
-export const ClawMachine: React.FC<ClawMachineProps> = ({
+// ⚡ Bolt: Wrapped in React.memo so the component doesn't re-render unnecessarily
+// when parent state updates occur (e.g. chat messages changing in App.tsx), unless its props change.
+export const ClawMachine = memo(({
   onHostSelected,
   selectedHost,
-}) => {
+}: ClawMachineProps) => {
   // Claw state: horizontal percent (15% to 85%), vertical percent (10% to 75%)
   const [clawX, setClawX] = useState<number>(50);
   const [clawY, setClawY] = useState<number>(10);
@@ -600,4 +602,4 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
       )}
     </div>
   );
-};
+});

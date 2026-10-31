@@ -122,7 +122,9 @@ export default function App() {
   ]);
 
   // When a host is picked from the Claw Machine
-  const handleHostSelected = async (host: PlushieHost) => {
+  // ⚡ Bolt: Wrapped in useCallback to prevent recreating this function on every render,
+  // which helps avoid unnecessary re-renders of child components like ClawMachine.
+  const handleHostSelected = useCallback(async (host: PlushieHost) => {
     setSelectedHost(host);
     setHostCommentary(host.catchphrases.intro);
     setIsLoadingQuestions(true);
@@ -168,7 +170,7 @@ export default function App() {
     } finally {
       setIsLoadingQuestions(false);
     }
-  };
+  }, [difficulty]);
 
   // Simulate co-player answer picks during active question
   useEffect(() => {
