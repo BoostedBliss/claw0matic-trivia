@@ -11,3 +11,9 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Missing Memoization and Unstable Callback References for Heavy Child Components
+**Learning:** Even if a parent state update doesn't visually affect a specific child component, React will re-render all children by default. If a child component (like `ClawMachine`) contains animations or computationally heavy operations and is not wrapped in `React.memo`, those re-renders become expensive. Furthermore, if the child relies on callback props from the parent (like `handleHostSelected`), those callbacks must be wrapped in `useCallback` to maintain referential equality, otherwise `React.memo` is defeated because the function prop is re-created on every parent render.
+**Action:**
+- Wrap expensive or animating child components (like `ClawMachine`) in `React.memo()`.
+- Audit parent components (like `App.tsx`) to ensure all functions passed as props to memoized children are wrapped in `useCallback`. Include necessary dependencies in the dependency array (like `[difficulty]` in `App.tsx` for `fetch`).
