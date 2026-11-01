@@ -6,6 +6,12 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 
+// ⚡ Bolt: Replace O(N) array search with an O(1) hash map lookup.
+// This prevents performance bottlenecks during the 50fps claw drop animation.
+// Instantiated outside the component to avoid React lifecycle overhead.
+const hostMap = new Map<string, PlushieHost>();
+PLUSHIE_HOSTS.forEach((host) => hostMap.set(host.id, host));
+
 interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
   selectedHost?: PlushieHost | null;
@@ -103,7 +109,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
       const dist = Math.abs(pos.x - targetX);
       if (dist < minDistance) {
         minDistance = dist;
-        const hostObj = PLUSHIE_HOSTS.find((h) => h.id === pos.id);
+        const hostObj = hostMap.get(pos.id);
         if (hostObj) closestHost = hostObj;
       }
     });
@@ -336,7 +342,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {plushiePositions.map((pos) => {
-                  const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+                  const host = hostMap.get(pos.id)!;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
 
