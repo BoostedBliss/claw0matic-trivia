@@ -6,6 +6,13 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 
+// ⚡ Bolt: Pre-computed hash map for O(1) lookups of plushie hosts.
+// Doing this at the module level outside the component avoids React lifecycle overhead.
+const PLUSHIE_HOSTS_MAP = PLUSHIE_HOSTS.reduce((acc, host) => {
+  acc[host.id] = host;
+  return acc;
+}, {} as Record<string, PlushieHost>);
+
 interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
   selectedHost?: PlushieHost | null;
@@ -103,7 +110,8 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
       const dist = Math.abs(pos.x - targetX);
       if (dist < minDistance) {
         minDistance = dist;
-        const hostObj = PLUSHIE_HOSTS.find((h) => h.id === pos.id);
+        // ⚡ Bolt: Replaced O(N) array find with O(1) hash map lookup
+        const hostObj = PLUSHIE_HOSTS_MAP[pos.id];
         if (hostObj) closestHost = hostObj;
       }
     });
@@ -336,7 +344,9 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {plushiePositions.map((pos) => {
-                  const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+                  // ⚡ Bolt: Replaced O(N) array find with O(1) hash map lookup
+                  // Eliminates O(N²) nested loop within the render cycle running at 50+ FPS
+                  const host = PLUSHIE_HOSTS_MAP[pos.id]!;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
 
