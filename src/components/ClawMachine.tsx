@@ -11,7 +11,40 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
+// Plushie slot positions inside the machine pit (4 overflowing tiers)
+const plushiePositions = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
+
+// ⚡ Bolt: Pre-computed Hash Maps to replace O(N) Array.find lookups during intense render loops
+const PLUSHIE_HOST_MAP = new Map(PLUSHIE_HOSTS.map((h) => [h.id, h]));
+const PLUSHIE_POSITION_MAP = new Map(plushiePositions.map((p) => [p.id, p]));
+
 export const ClawMachine: React.FC<ClawMachineProps> = ({
+
   onHostSelected,
   selectedHost,
 }) => {
@@ -24,33 +57,6 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
   const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
   const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
 
-  // Plushie slot positions inside the machine pit (4 overflowing tiers)
-  const plushiePositions = useRef([
-    { id: 'boba-bun', x: 14, y: 50 },
-    { id: 'chocola-bear', x: 28, y: 52 },
-    { id: 'dj-meow', x: 42, y: 49 },
-    { id: 'sir-reginald', x: 56, y: 52 },
-    { id: 'captain-squid', x: 70, y: 50 },
-    { id: 'matcha-mochi', x: 84, y: 52 },
-    { id: 'prof-pip', x: 21, y: 64 },
-    { id: 'pixel-pup', x: 35, y: 66 },
-    { id: 'sparky-bolt', x: 49, y: 63 },
-    { id: 'luna-moth', x: 63, y: 65 },
-    { id: 'ninja-panda', x: 77, y: 63 },
-    { id: 'dino-nugget', x: 89, y: 65 },
-    { id: 'neon-shiba', x: 16, y: 76 },
-    { id: 'marshmallow-seal', x: 30, y: 78 },
-    { id: 'spicy-ramen-pig', x: 44, y: 75 },
-    { id: 'galaxy-cat', x: 58, y: 77 },
-    { id: 'wizard-owl', x: 72, y: 75 },
-    { id: 'berry-bunny', x: 85, y: 77 },
-    { id: 'steampunk-otter', x: 23, y: 88 },
-    { id: 'vampire-bat', x: 37, y: 90 },
-    { id: 'boba-dragon', x: 51, y: 87 },
-    { id: 'cactus-pup', x: 65, y: 89 },
-    { id: 'detective-duck', x: 79, y: 88 },
-    { id: 'chibi-kraken', x: 48, y: 98 },
-  ]).current;
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
@@ -89,7 +95,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     // If specific target requested (e.g. from random roll)
     let targetX = clawX;
     if (targetHostId) {
-      const match = plushiePositions.find((p) => p.id === targetHostId);
+      const match = PLUSHIE_POSITION_MAP.get(targetHostId);
       if (match) {
         targetX = match.x;
         setClawX(targetX);
@@ -103,7 +109,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
       const dist = Math.abs(pos.x - targetX);
       if (dist < minDistance) {
         minDistance = dist;
-        const hostObj = PLUSHIE_HOSTS.find((h) => h.id === pos.id);
+        const hostObj = PLUSHIE_HOST_MAP.get(pos.id);
         if (hostObj) closestHost = hostObj;
       }
     });
@@ -336,7 +342,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {plushiePositions.map((pos) => {
-                  const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+                  const host = PLUSHIE_HOST_MAP.get(pos.id)!;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
 
@@ -528,7 +534,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
                     key={h.id}
                     onClick={() => {
                       setActivePreviewHost(h);
-                      const pos = plushiePositions.find((p) => p.id === h.id);
+                      const pos = PLUSHIE_POSITION_MAP.get(h.id);
                       if (pos && !isDropping) setClawX(pos.x);
                     }}
                     className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
