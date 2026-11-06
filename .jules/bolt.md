@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Static Array Allocation within High-Frequency Renders
+**Learning:** Passing an array or object literal to `useRef(initialValue)` allocates that literal on every single render pass before passing it to `useRef`. In components with high-frequency animation loops (like `ClawMachine` updating `clawX`/`clawY` at 50+ FPS), this constant re-allocation of large arrays (like `plushiePositions`) causes unnecessary memory usage and garbage collection overhead, leading to jank.
+**Action:** Always move static arrays, objects, or mappings completely outside the React component (to the module level) unless they strictly depend on component props or state that changes on mount. This guarantees they are allocated only once.

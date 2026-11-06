@@ -13,13 +13,13 @@ interface PlushieAvatarProps {
 // During the claw drop animation, ClawMachine's clawX updates every 20ms.
 // Without memo(), all 48 PlushieAvatar instances re-rendered 50 times a second,
 // causing lag due to the complex SVG DOM tree recalculations.
-export const PlushieAvatar: React.FC<PlushieAvatarProps> = memo(({
+export const PlushieAvatar = memo(({
   host,
   size = 'md',
   emotion = 'idle',
   showAura = true,
   className = '',
-}) => {
+}: PlushieAvatarProps) => {
   const sizeMap = {
     sm: 'w-16 h-16 sm:w-20 sm:h-20 text-2xl',
     md: 'w-24 h-24 sm:w-28 sm:h-28 text-3xl',
