@@ -11,21 +11,10 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
-export const ClawMachine: React.FC<ClawMachineProps> = ({
-  onHostSelected,
-  selectedHost,
-}) => {
-  // Claw state: horizontal percent (15% to 85%), vertical percent (10% to 75%)
-  const [clawX, setClawX] = useState<number>(50);
-  const [clawY, setClawY] = useState<number>(10);
-  const [isClawOpen, setIsClawOpen] = useState<boolean>(true);
-  const [isDropping, setIsDropping] = useState<boolean>(false);
-  const [grabbedHost, setGrabbedHost] = useState<PlushieHost | null>(null);
-  const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
-  const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
-
-  // Plushie slot positions inside the machine pit (4 overflowing tiers)
-  const plushiePositions = useRef([
+// ⚡ Bolt: Moved PLUSHIE_POSITIONS out of the component to avoid re-allocating
+// this array literal on every render, especially critical since ClawMachine
+// renders at 50+ FPS during the drop animation.
+const PLUSHIE_POSITIONS = [
     { id: 'boba-bun', x: 14, y: 50 },
     { id: 'chocola-bear', x: 28, y: 52 },
     { id: 'dj-meow', x: 42, y: 49 },
@@ -50,7 +39,21 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     { id: 'cactus-pup', x: 65, y: 89 },
     { id: 'detective-duck', x: 79, y: 88 },
     { id: 'chibi-kraken', x: 48, y: 98 },
-  ]).current;
+];
+
+export const ClawMachine: React.FC<ClawMachineProps> = ({
+  onHostSelected,
+  selectedHost,
+}) => {
+  // Claw state: horizontal percent (15% to 85%), vertical percent (10% to 75%)
+  const [clawX, setClawX] = useState<number>(50);
+  const [clawY, setClawY] = useState<number>(10);
+  const [isClawOpen, setIsClawOpen] = useState<boolean>(true);
+  const [isDropping, setIsDropping] = useState<boolean>(false);
+  const [grabbedHost, setGrabbedHost] = useState<PlushieHost | null>(null);
+  const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
+  const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
+
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
@@ -89,7 +92,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     // If specific target requested (e.g. from random roll)
     let targetX = clawX;
     if (targetHostId) {
-      const match = plushiePositions.find((p) => p.id === targetHostId);
+      const match = PLUSHIE_POSITIONS.find((p) => p.id === targetHostId);
       if (match) {
         targetX = match.x;
         setClawX(targetX);
@@ -99,7 +102,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     // Determine which plushie is closest to current X
     let closestHost = PLUSHIE_HOSTS[0];
     let minDistance = 999;
-    plushiePositions.forEach((pos) => {
+    PLUSHIE_POSITIONS.forEach((pos) => {
       const dist = Math.abs(pos.x - targetX);
       if (dist < minDistance) {
         minDistance = dist;
@@ -335,7 +338,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
 
               {/* Plushie Pit (Floor Bed overflowing with all 12 plushies in full aura) */}
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
-                {plushiePositions.map((pos) => {
+                {PLUSHIE_POSITIONS.map((pos) => {
                   const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
                   const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
@@ -528,7 +531,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
                     key={h.id}
                     onClick={() => {
                       setActivePreviewHost(h);
-                      const pos = plushiePositions.find((p) => p.id === h.id);
+                      const pos = PLUSHIE_POSITIONS.find((p) => p.id === h.id);
                       if (pos && !isDropping) setClawX(pos.x);
                     }}
                     className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
