@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Static Array Allocation Inside High-Frequency Render Loops
+**Learning:** Passing an array literal to `useRef(initialValue)` inside a React component causes that array to be recreated and allocated in memory on *every single render*, even though `useRef` only keeps the very first reference. In components with high-frequency state updates like `ClawMachine` (which animates `clawX` via React state at 50+ FPS), this results in continuous, unnecessary garbage collection overhead and memory churn.
+**Action:** Always move static data structures (like arrays of coordinates or configuration objects) completely out of the React component to the module scope level whenever they don't depend on component props or state.
