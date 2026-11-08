@@ -11,6 +11,35 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
+// ⚡ Bolt: Static data moved out of the component to prevent reallocation
+// during the high-frequency animation loop that updates clawX and clawY.
+const plushiePositions = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
+
 export const ClawMachine: React.FC<ClawMachineProps> = ({
   onHostSelected,
   selectedHost,
@@ -25,32 +54,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
   const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
 
   // Plushie slot positions inside the machine pit (4 overflowing tiers)
-  const plushiePositions = useRef([
-    { id: 'boba-bun', x: 14, y: 50 },
-    { id: 'chocola-bear', x: 28, y: 52 },
-    { id: 'dj-meow', x: 42, y: 49 },
-    { id: 'sir-reginald', x: 56, y: 52 },
-    { id: 'captain-squid', x: 70, y: 50 },
-    { id: 'matcha-mochi', x: 84, y: 52 },
-    { id: 'prof-pip', x: 21, y: 64 },
-    { id: 'pixel-pup', x: 35, y: 66 },
-    { id: 'sparky-bolt', x: 49, y: 63 },
-    { id: 'luna-moth', x: 63, y: 65 },
-    { id: 'ninja-panda', x: 77, y: 63 },
-    { id: 'dino-nugget', x: 89, y: 65 },
-    { id: 'neon-shiba', x: 16, y: 76 },
-    { id: 'marshmallow-seal', x: 30, y: 78 },
-    { id: 'spicy-ramen-pig', x: 44, y: 75 },
-    { id: 'galaxy-cat', x: 58, y: 77 },
-    { id: 'wizard-owl', x: 72, y: 75 },
-    { id: 'berry-bunny', x: 85, y: 77 },
-    { id: 'steampunk-otter', x: 23, y: 88 },
-    { id: 'vampire-bat', x: 37, y: 90 },
-    { id: 'boba-dragon', x: 51, y: 87 },
-    { id: 'cactus-pup', x: 65, y: 89 },
-    { id: 'detective-duck', x: 79, y: 88 },
-    { id: 'chibi-kraken', x: 48, y: 98 },
-  ]).current;
+  // ⚡ Bolt: Moved to module level to avoid object reallocation on every render frame
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
