@@ -11,3 +11,7 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Static Array Initialization with useRef Penalty
+**Learning:** Passing a large array or object literal to `useRef(initialValue)` in a high-frequency render component (like `ClawMachine` with its animation loop updating state every 20ms) causes the literal to be needlessly allocated in memory on every single render, even though `useRef` only uses the value on the initial render. This leads to excessive garbage collection and performance degradation during smooth animations.
+**Action:** Always move static arrays and objects (like lookup maps or coordinate lists) outside of the React component to the module level. Only use `useRef` or `useState` for static data if it depends on props or component scope.
