@@ -11,3 +11,9 @@
 **Action:**
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
+
+## 2024-05-26 - Static Array Literals in useRef causing reallocations
+**Learning:** Initializing `useRef` with an array literal (e.g. `useRef([{...}, {...}])`) creates a *new* array object every single render, even though the ref only stores the *first* array it's given. In high-frequency render loops (like 50 FPS animations), this causes continuous memory allocation and garbage collection churn. Furthermore, mapping over arrays with `.find()` inside the render loop causes significant O(N) overhead.
+**Action:**
+- Always move static arrays or object literals to the module level (outside the component) instead of putting them directly inside `useRef()` or the component body.
+- Pre-compute static map data (like looking up a `PlushieHost` by ID) at the module level so the render loop just performs O(1) property access rather than repeatedly running `Array.find()`.
