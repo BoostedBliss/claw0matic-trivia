@@ -258,6 +258,73 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     dropClaw(chosen.id);
   };
 
+  // ⚡ Bolt: Memoize the plushie pit list mapping to prevent the React reconciler
+  // from having to diff 24 new wrapper elements on every single 20ms animation tick
+  // of the claw drop.
+  const plushiePitContent = useMemo(() => plushiePositions.map((pos) => {
+    const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
+    const isUnderClaw = Math.abs(pos.x - clawX) < 8;
+    const isCurrentTarget = grabbedHost?.id === host.id;
+
+    if (isCurrentTarget) return null; // currently attached to claw
+
+    return (
+      <div
+        key={host.id}
+        onClick={() => {
+          if (!isDropping) {
+            setActivePreviewHost(host);
+            setClawX(pos.x);
+          }
+        }}
+        className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
+          isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
+        }`}
+        style={{
+          left: `${pos.x}%`,
+          bottom: `${(pos.y - 48) * 2.5}px`,
+        }}
+        title={`${host.name} - ${host.category}`}
+      >
+        <PlushieAvatar
+          host={host}
+          size="md"
+          emotion={isUnderClaw ? 'happy' : 'idle'}
+          showAura={true}
+        />
+        <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
+          {host.name}
+        </div>
+      </div>
+    );
+  }), [plushiePositions, clawX, grabbedHost?.id, isDropping]);
+
+  // ⚡ Bolt: Memoize the quick roster list mapping to prevent reconciliation jank
+  // during claw movement, only re-evaluating when the active preview host changes.
+  const plushieRosterContent = useMemo(() => PLUSHIE_HOSTS.map((h) => {
+    const isSelected = activePreviewHost.id === h.id;
+    return (
+      <button
+        key={h.id}
+        onClick={() => {
+          setActivePreviewHost(h);
+          const pos = plushiePositions.find((p) => p.id === h.id);
+          if (pos && !isDropping) setClawX(pos.x);
+        }}
+        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+          isSelected
+            ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
+            : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
+        }`}
+      >
+        <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
+        <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
+          {h.name}
+        </span>
+      </button>
+    );
+  }), [plushiePositions, activePreviewHost.id, isDropping]);
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
       {/* Top Arcade Marquee Banner */}
