@@ -12,6 +12,6 @@
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
 
-## 2024-05-25 - Rapid Parent State Updates Re-rendering Complex List Items
-**Learning:** In ClawMachine, dropping the claw uses `setInterval` to update state coordinates (clawX, clawY) at 50 FPS. This causes the entire component to re-render. Because the plushie items (PitPlushie and RosterPlushie) are mapped inline, they were re-rendering 50 times a second and performing expensive DOM reconciliation on SVG/CSS-heavy `PlushieAvatar` children, causing massive visual jank.
-**Action:** Always extract items mapped inside components with high-frequency animation states into their own separate components wrapped in `React.memo`. Always pass stable callback functions using `useCallback` for their event handlers. Ensure props passed down are as primitive and stable as possible.
+## 2024-05-26 - Static Array/Object Initialization inside `useRef` causes Reallocation
+**Learning:** Passing an array or object literal to `useRef(initialValue)` inside a React component still causes the array or object to be allocated in memory on *every single render*. While `useRef` will discard the newly created literal and keep the first one, the allocation overhead still happens. In a component like `ClawMachine` with a high-frequency animation render loop (50fps), this creates unnecessary garbage collection pressure and can impact performance.
+**Action:** When pre-computing static data structures or constants (like `plushiePositions`), always extract them completely out of the component and instantiate them at the module level (as `const PLUSHIE_POSITIONS = [...]`).
