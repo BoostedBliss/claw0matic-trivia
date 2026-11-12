@@ -6,65 +6,35 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 
-interface PitPlushieProps {
-  host: PlushieHost;
-  pos: { x: number; y: number };
-  isUnderClaw: boolean;
-  isCurrentTarget: boolean;
-  onSelect: (host: PlushieHost, pos: { x: number; y: number }) => void;
-}
-
-const PitPlushie = memo(({ host, pos, isUnderClaw, isCurrentTarget, onSelect }: PitPlushieProps) => {
-  if (isCurrentTarget) return null; // currently attached to claw
-
-  return (
-    <div
-      onClick={() => onSelect(host, pos)}
-      className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
-        isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
-      }`}
-      style={{
-        left: `${pos.x}%`,
-        bottom: `${(pos.y - 48) * 2.5}px`,
-      }}
-      title={`${host.name} - ${host.category}`}
-    >
-      <PlushieAvatar
-        host={host}
-        size="md"
-        emotion={isUnderClaw ? 'happy' : 'idle'}
-        showAura={true}
-      />
-      <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
-        {host.name}
-      </div>
-    </div>
-  );
-});
-
-interface RosterPlushieProps {
-  host: PlushieHost;
-  isSelected: boolean;
-  onSelect: (host: PlushieHost) => void;
-}
-
-const RosterPlushie = memo(({ host, isSelected, onSelect }: RosterPlushieProps) => {
-  return (
-    <button
-      onClick={() => onSelect(host)}
-      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-        isSelected
-          ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
-          : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
-      }`}
-    >
-      <PlushieAvatar host={host} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
-      <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
-        {host.name}
-      </span>
-    </button>
-  );
-});
+// ⚡ Bolt: Extracted plushiePositions to module scope to completely avoid
+// allocating this 24-item array on every re-render (which happens very frequently
+// during the claw drop animation loop where clawX/clawY update).
+const PLUSHIE_POSITIONS = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
 
 interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
