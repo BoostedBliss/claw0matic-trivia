@@ -1,10 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { PlushieHost } from '../types';
 import { PLUSHIE_HOSTS } from '../data/hosts';
 import { PlushieAvatar } from './PlushieAvatar';
 import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
+
+// Pre-compute plushie positions at the module level to avoid
+// object array reallocation on every render loop inside ClawMachine (which updates clawX/clawY every 20ms)
+const PLUSHIE_POSITIONS = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
 
 interface ClawMachineProps {
   onHostSelected: (host: PlushieHost) => void;
@@ -42,6 +71,7 @@ const PLUSHIE_POSITIONS = [
 ];
 
 export const ClawMachine: React.FC<ClawMachineProps> = ({
+
   onHostSelected,
   selectedHost,
 }) => {
@@ -53,6 +83,8 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
   const [grabbedHost, setGrabbedHost] = useState<PlushieHost | null>(null);
   const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
   const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
+
+  // No need for plushie positions here
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
@@ -186,6 +218,20 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
     const chosen = PLUSHIE_HOSTS[randomIndex];
     dropClaw(chosen.id);
   };
+
+  const handlePitPlushieClick = useCallback((host: PlushieHost, pos: { x: number, y: number }) => {
+    if (!isDropping) {
+      setActivePreviewHost(host);
+      setClawX(pos.x);
+    }
+  }, [isDropping]);
+
+  const handleRosterPlushieClick = useCallback((host: PlushieHost) => {
+    setActivePreviewHost(host);
+    const pos = plushiePositions.find((p) => p.id === host.id);
+    if (pos && !isDropping) setClawX(pos.x);
+  }, [isDropping, plushiePositions]);
+
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
@@ -339,39 +385,17 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               <div className="relative w-full h-72 sm:h-80 mt-auto pb-4 px-6 z-10 overflow-hidden">
                 {PLUSHIE_POSITIONS.map((pos) => {
                   const host = PLUSHIE_HOSTS.find((h) => h.id === pos.id)!;
-                  const isUnderClaw = Math.abs(pos.x - clawX) < 8;
                   const isCurrentTarget = grabbedHost?.id === host.id;
-
-                  if (isCurrentTarget) return null; // currently attached to claw
+                  const isUnderClaw = Math.abs(pos.x - clawX) < 8;
 
                   return (
-                    <div
+                    <PitPlushieItem
                       key={host.id}
-                      onClick={() => {
-                        if (!isDropping) {
-                          setActivePreviewHost(host);
-                          setClawX(pos.x);
-                        }
-                      }}
-                      className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
-                        isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
-                      }`}
-                      style={{
-                        left: `${pos.x}%`,
-                        bottom: `${(pos.y - 48) * 2.5}px`,
-                      }}
-                      title={`${host.name} - ${host.category}`}
-                    >
-                      <PlushieAvatar
-                        host={host}
-                        size="md"
-                        emotion={isUnderClaw ? 'happy' : 'idle'}
-                        showAura={true}
-                      />
-                      <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
-                        {host.name}
-                      </div>
-                    </div>
+                      host={host}
+                      pos={pos}
+                      isUnderClaw={isUnderClaw}
+                      onClick={handlePitPlushieClick}
+                    />
                   );
                 })}
               </div>
@@ -526,7 +550,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
               {PLUSHIE_HOSTS.map((h) => {
                 const isSelected = activePreviewHost.id === h.id;
                 return (
-                  <button
+                  <RosterPlushieItem
                     key={h.id}
                     onClick={() => {
                       setActivePreviewHost(h);
@@ -547,7 +571,7 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
                 );
               })}
             </div>
-          </div>
+          ), [activePreviewHost.id, isDropping, plushiePositions])}
         </div>
       </div>
 
