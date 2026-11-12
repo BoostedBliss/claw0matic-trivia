@@ -6,9 +6,8 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import { Sparkles, Dices, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 
-// ⚡ Bolt: Extracted plushiePositions to module scope to completely avoid
-// allocating this 24-item array on every re-render (which happens very frequently
-// during the claw drop animation loop where clawX/clawY update).
+// Pre-compute plushie positions at the module level to avoid
+// object array reallocation on every render loop inside ClawMachine (which updates clawX/clawY every 20ms)
 const PLUSHIE_POSITIONS = [
   { id: 'boba-bun', x: 14, y: 50 },
   { id: 'chocola-bear', x: 28, y: 52 },
@@ -83,6 +82,8 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
   const [grabbedHost, setGrabbedHost] = useState<PlushieHost | null>(null);
   const [showPrizeModal, setShowPrizeModal] = useState<boolean>(false);
   const [activePreviewHost, setActivePreviewHost] = useState<PlushieHost>(PLUSHIE_HOSTS[0]);
+
+  // No need for plushie positions here
 
   // Manual move left/right
   const moveClaw = (direction: 'left' | 'right') => {
