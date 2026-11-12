@@ -40,50 +40,35 @@ interface ClawMachineProps {
   selectedHost?: PlushieHost | null;
 }
 
-
-// ⚡ Bolt: Wrapped mapped list items in React.memo() to prevent them from
-// re-rendering 50 times per second during the 20ms interval claw drop animation.
-// Since clawX updates frequently, mapping inline components causes massive DOM recalculations
-// even if a deep child like PlushieAvatar is memoized.
-const PitPlushieItem = memo(({ host, pos, isUnderClaw, onClick }: { host: PlushieHost, pos: { x: number, y: number }, isUnderClaw: boolean, onClick: (host: PlushieHost, pos: { x: number, y: number }) => void }) => (
-  <div
-    onClick={() => onClick(host, pos)}
-    className={`absolute cursor-pointer transition-all duration-300 transform -translate-x-1/2 ${
-      isUnderClaw ? 'scale-125 -translate-y-4 z-40' : 'hover:scale-115 z-20'
-    }`}
-    style={{
-      left: `${pos.x}%`,
-      bottom: `${(pos.y - 48) * 2.5}px`,
-    }}
-    title={`${host.name} - ${host.category}`}
-  >
-    <PlushieAvatar
-      host={host}
-      size="md"
-      emotion={isUnderClaw ? 'happy' : 'idle'}
-      showAura={true}
-    />
-    <div className="text-center text-[10px] font-black text-white bg-black/85 rounded-full px-2 py-0.5 mt-0.5 truncate max-w-[85px] border border-white/20 shadow-md">
-      {host.name}
-    </div>
-  </div>
-));
-
-const RosterPlushieItem = memo(({ host, isSelected, onClick }: { host: PlushieHost, isSelected: boolean, onClick: (host: PlushieHost) => void }) => (
-  <button
-    onClick={() => onClick(host)}
-    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-      isSelected
-        ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
-        : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
-    }`}
-  >
-    <PlushieAvatar host={host} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
-    <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
-      {host.name}
-    </span>
-  </button>
-));
+// ⚡ Bolt: Moved PLUSHIE_POSITIONS outside of the component to avoid needless reallocation on every render.
+// Previously this was inside a useRef([...]) call, which meant a new array and 24 new objects were allocated
+// every time ClawMachine re-rendered (which is 50+ times a second during animations).
+const PLUSHIE_POSITIONS = [
+  { id: 'boba-bun', x: 14, y: 50 },
+  { id: 'chocola-bear', x: 28, y: 52 },
+  { id: 'dj-meow', x: 42, y: 49 },
+  { id: 'sir-reginald', x: 56, y: 52 },
+  { id: 'captain-squid', x: 70, y: 50 },
+  { id: 'matcha-mochi', x: 84, y: 52 },
+  { id: 'prof-pip', x: 21, y: 64 },
+  { id: 'pixel-pup', x: 35, y: 66 },
+  { id: 'sparky-bolt', x: 49, y: 63 },
+  { id: 'luna-moth', x: 63, y: 65 },
+  { id: 'ninja-panda', x: 77, y: 63 },
+  { id: 'dino-nugget', x: 89, y: 65 },
+  { id: 'neon-shiba', x: 16, y: 76 },
+  { id: 'marshmallow-seal', x: 30, y: 78 },
+  { id: 'spicy-ramen-pig', x: 44, y: 75 },
+  { id: 'galaxy-cat', x: 58, y: 77 },
+  { id: 'wizard-owl', x: 72, y: 75 },
+  { id: 'berry-bunny', x: 85, y: 77 },
+  { id: 'steampunk-otter', x: 23, y: 88 },
+  { id: 'vampire-bat', x: 37, y: 90 },
+  { id: 'boba-dragon', x: 51, y: 87 },
+  { id: 'cactus-pup', x: 65, y: 89 },
+  { id: 'detective-duck', x: 79, y: 88 },
+  { id: 'chibi-kraken', x: 48, y: 98 },
+];
 
 export const ClawMachine: React.FC<ClawMachineProps> = ({
 
@@ -567,10 +552,22 @@ export const ClawMachine: React.FC<ClawMachineProps> = ({
                 return (
                   <RosterPlushieItem
                     key={h.id}
-                    host={h}
-                    isSelected={isSelected}
-                    onClick={handleRosterPlushieClick}
-                  />
+                    onClick={() => {
+                      setActivePreviewHost(h);
+                      const pos = PLUSHIE_POSITIONS.find((p) => p.id === h.id);
+                      if (pos && !isDropping) setClawX(pos.x);
+                    }}
+                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#5865F2]/20 border-[#5865F2] shadow-sm'
+                        : 'bg-[#1e1f22] border-[#35373c] hover:border-[#4e5058]'
+                    }`}
+                  >
+                    <PlushieAvatar host={h} size="sm" emotion={isSelected ? 'happy' : 'idle'} />
+                    <span className="text-[10px] font-bold text-white mt-1 truncate max-w-full">
+                      {h.name}
+                    </span>
+                  </button>
                 );
               })}
             </div>
