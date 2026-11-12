@@ -12,9 +12,6 @@
 - Whenever a parent component has a high-frequency animation state (like a drag or drop coordinate), carefully audit its child components.
 - Heavily utilize `React.memo` for any visually complex child components rendered within the animating parent to ensure they skip re-rendering if their specific props (like `host` or `emotion`) haven't changed.
 
-## 2024-05-26 - Thrashing from Inline Components in Interval Loops
-**Learning:** Mapping over an array to render complex components directly inside a parent component that updates state via a high-frequency `setInterval` (like `clawX` updating every 20ms during a drop animation) causes severe re-render thrashing. Even if child components like `PlushieAvatar` are memoized, passing them as children to a non-memoized inline wrapper `div` forces the wrapper to be re-created and the memoization to be evaluated every tick.
-**Action:**
-- Always extract wrapper DOM nodes (like positional `div` containers in absolute layouts) into their own `React.memo`-ized functional components.
-- Pass stable `useCallback` functions to these memoized wrappers to prevent breaking referential equality.
-- Use `useMemo` for static or semi-static lists (like a roster grid) that don't need to re-render during unrelated state animations.
+## 2024-10-18 - Extracting array items into React.memo components for interval loops
+**Learning:** In React, if a parent component runs an interval loop that updates state rapidly (e.g. 50 times a second for animation frames like `clawX` and `clawY` in `ClawMachine`), mapping over large arrays (like 24 plushies) inline will cause massive re-renders of all child DOM elements on every tick. Even if a deep child like `PlushieAvatar` is memoized, the intermediate DOM wrapper elements inside the map still get recreated constantly.
+**Action:** Extract the mapped item JSX into its own `React.memo` component (e.g., `PitPlushieItem` and `RosterPlushieItem`). Pass primitive values (like `isUnderClaw`) to the memoized component so it only re-renders when its specific boolean state flips, completely bypassing the 50fps parent re-renders for unchanged items.
